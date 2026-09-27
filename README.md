@@ -121,6 +121,13 @@ FOSHttpCache's response tagger.
 - **A client's `Surrogate-Capability` header** is removed before the application
   sees it.
 
+## Versioning
+
+Versions follow Trident: this bundle 1.8.x works with Trident 1.8. MAJOR.MINOR moves
+with the engine (every Trident X.Y.0 release is also a release of this package,
+changed or not); the PATCH number is this package's own. The
+admin screens warn when a connected Trident runs another release line.
+
 ## This repository is a mirror
 
 `qoliber/trident-symfony` is developed in the Trident repository together with the
