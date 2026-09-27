@@ -1,0 +1,62 @@
+{
+    "name": "qoliber/trident-symfony",
+    "description": "Symfony bundle for the Trident HTTP cache: durable tag purges from Doctrine changes (outbox in the same transaction), bounded cache-tag headers, a FOSHttpCache proxy client, the admin screens' logic over the shared Trident admin client, and the security defaults (token sealed to its URL, env token only to env URLs, no link-local/metadata targets).",
+    "type": "symfony-bundle",
+    "license": "MIT",
+    "authors": [
+        {
+            "name": "qoliber",
+            "email": "jwinkler@qoliber.com"
+        }
+    ],
+    "repositories": [
+        {
+            "type": "path",
+            "url": "../../../php-library",
+            "options": {
+                "symlink": false,
+                "versions": {
+                    "qoliber/trident-php": "1.8.99"
+                }
+            }
+        }
+    ],
+    "require": {
+        "php": "~8.2.0||~8.3.0||~8.4.0||~8.5.0",
+        "ext-sodium": "*",
+        "symfony/framework-bundle": "^6.4||^7.0",
+        "symfony/console": "^6.4||^7.0",
+        "doctrine/dbal": "^3.6||^4.0",
+        "doctrine/orm": "^2.16||^3.0",
+        "doctrine/doctrine-bundle": "^2.10",
+        "guzzlehttp/guzzle": "^7.5",
+        "guzzlehttp/psr7": "^2.4",
+        "qoliber/trident-php": "^1.8"
+    },
+    "require-dev": {
+        "phpunit/phpunit": "^10.5||^11.0",
+        "friendsofsymfony/http-cache-bundle": "^3.4",
+        "doctrine/doctrine-migrations-bundle": "^3.2",
+        "symfony/yaml": "^6.4||^7.0"
+    },
+    "autoload": {
+        "psr-4": {
+            "Qoliber\\TridentSymfony\\": "src/"
+        }
+    },
+    "autoload-dev": {
+        "psr-4": {
+            "Qoliber\\TridentSymfony\\Tests\\": "tests/"
+        }
+    },
+    "config": {
+        "platform": {
+            "php": "8.2.0"
+        }
+    },
+    "suggest": {
+        "friendsofsymfony/http-cache-bundle": "^3.4 \u2014 Trident as FOSHttpCache's proxy client (tags, clear) when the app has none",
+        "doctrine/doctrine-migrations-bundle": "^3.2 \u2014 the bundle's migration for its two tables (otherwise doctrine:schema:update from the entity mapping)",
+        "symfony/scheduler": "drain the outbox every minute from a worker (messenger:consume scheduler_trident)"
+    }
+}

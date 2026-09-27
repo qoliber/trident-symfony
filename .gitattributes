@@ -1,0 +1,4 @@
+# Composer installs carry the package only; tests stay in the repository.
+/tests            export-ignore
+/phpunit.xml.dist export-ignore
+/.gitattributes   export-ignore
