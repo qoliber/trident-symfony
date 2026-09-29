@@ -1,7 +1,7 @@
 # qoliber/trident-symfony
 
-Trident HTTP cache for **any Symfony application** (6.4 / 7.x, PHP 8.2+,
-Doctrine ORM). The Sylius bundle (`qoliber/trident-cache-sylius`) builds on it.
+Trident HTTP cache for **any Symfony application** (6.4, 7.x and 8.x; PHP
+8.2+, 8.4+ with Symfony 8; Doctrine ORM with DoctrineBundle 2 or 3). The Sylius bundle (`qoliber/trident-cache-sylius`) builds on it.
 
 What it does:
 
@@ -90,6 +90,32 @@ trident:
 Implement `Qoliber\TridentSymfony\Tags\EntityTagResolver` for your entities
 (autoconfigured), and add tags to pages with `ResponseTags::add()` or
 FOSHttpCache's response tagger.
+
+### Signed-in visitors: the login marker
+
+An application with a login needs Trident to recognise a signed-in visitor
+**before** it looks up a page. Otherwise that visitor gets the page an
+anonymous render put in the cache, with "Sign in" where their name should be.
+With symfony/security-bundle:
+
+```yaml
+trident:
+    login_marker: trident_auth
+```
+
+- The bundle sets `trident_auth=1` (HttpOnly, SameSite=Lax, a session cookie)
+  while a user is signed in, and clears it once nobody is.
+- A request carrying it is a bypass cookie of the response policy.
+- A render for a signed-in user is refused for sharing even when the
+  authentication read no session (remember-me, a stateless token).
+
+List the same cookie in Trident's configuration so the request passes to the
+application:
+
+```toml
+[cache.key]
+bypass_cookies = ["trident_auth"]
+```
 
 ## Delivery and monitoring
 

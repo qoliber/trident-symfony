@@ -20,6 +20,7 @@ use Qoliber\TridentSymfony\Delivery\DeliveryFactory;
 use Qoliber\TridentSymfony\Delivery\DoctrineOutboxRecorder;
 use Qoliber\TridentSymfony\EventSubscriber\CacheabilityVoter;
 use Qoliber\TridentSymfony\EventSubscriber\DeliverySubscriber;
+use Qoliber\TridentSymfony\EventSubscriber\LoginMarkerSubscriber;
 use Qoliber\TridentSymfony\EventSubscriber\RequestHardeningSubscriber;
 use Qoliber\TridentSymfony\EventSubscriber\ResponsePolicySubscriber;
 use Qoliber\TridentSymfony\Messenger\DrainOutboxHandler;
@@ -34,6 +35,7 @@ use Symfony\Component\DependencyInjection\ContainerBuilder;
 use Symfony\Component\DependencyInjection\Loader\Configurator\ContainerConfigurator;
 use Symfony\Component\HttpKernel\Bundle\AbstractBundle;
 use Symfony\Component\Scheduler\ScheduleProviderInterface;
+use Symfony\Component\Security\Core\Authentication\Token\Storage\TokenStorageInterface;
 
 use function Symfony\Component\DependencyInjection\Loader\Configurator\service;
 use function Symfony\Component\DependencyInjection\Loader\Configurator\tagged_iterator;
@@ -57,6 +59,8 @@ final class TridentSymfonyBundle extends AbstractBundle
                     ->info('Route names whose pages Trident may share (the response policy decides per render)')->end()
                 ->arrayNode('bypass_cookies')->scalarPrototype()->end()->defaultValue([])
                     ->info('Request cookies that make a render personal (e.g. a login marker)')->end()
+                ->scalarNode('login_marker')->defaultNull()
+                    ->info('Cookie set while a user is signed in, for Trident\'s bypass_cookies (e.g. trident_auth); null = off. Needs symfony/security-bundle')->end()
                 ->integerNode('s_maxage')->defaultValue(3600)->min(0)->end()
                 ->integerNode('redeliver_after')->defaultValue(10)->min(0)
                     ->info('Seconds after which a delivered purge is delivered once more (the editor race); 0 = never')->end()
@@ -172,9 +176,18 @@ final class TridentSymfonyBundle extends AbstractBundle
             ->tag('kernel.reset', ['method' => 'onClear']);
         $s->set(ResponseTags::class)->tag('kernel.reset', ['method' => 'reset']);
         $s->set(RequestHardeningSubscriber::class)->tag('kernel.event_subscriber');
+        $bypassCookies = $config['bypass_cookies'];
+        if ($config['login_marker'] !== null) {
+            if (!interface_exists(TokenStorageInterface::class)) {
+                throw new \LogicException('trident.login_marker needs symfony/security-bundle (composer require symfony/security-bundle).');
+            }
+            $s->set(LoginMarkerSubscriber::class)->args([service('security.token_storage'), $config['login_marker']])
+                ->tag('kernel.event_subscriber')->tag('trident.cacheability_voter');
+            $bypassCookies = array_values(array_unique([...$bypassCookies, $config['login_marker']]));
+        }
         $s->set(ResponsePolicySubscriber::class)->args([
             service(SettingsProvider::class), service(TagPolicy::class), service(ResponseTags::class),
-            $config['cacheable_routes'], $config['bypass_cookies'], tagged_iterator('trident.cacheability_voter'),
+            $config['cacheable_routes'], $bypassCookies, tagged_iterator('trident.cacheability_voter'),
             $config['s_maxage'], $config['stale_while_revalidate'],
         ])->tag('kernel.event_subscriber');
         $s->set(DeliverySubscriber::class)->args([

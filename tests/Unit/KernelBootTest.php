@@ -10,9 +10,11 @@ use PHPUnit\Framework\TestCase;
 use Qoliber\Trident\Admin\AdminService;
 use Qoliber\TridentSymfony\Delivery\DeliveryFactory;
 use Qoliber\TridentSymfony\Delivery\Entity\OutboxRow;
+use Qoliber\TridentSymfony\EventSubscriber\LoginMarkerSubscriber;
 use Qoliber\TridentSymfony\TridentSymfonyBundle;
 use Symfony\Bundle\FrameworkBundle\FrameworkBundle;
 use Symfony\Bundle\FrameworkBundle\Kernel\MicroKernelTrait;
+use Symfony\Bundle\SecurityBundle\SecurityBundle;
 use Symfony\Component\DependencyInjection\Loader\Configurator\ContainerConfigurator;
 use Symfony\Component\HttpKernel\Kernel;
 
@@ -24,6 +26,30 @@ use Symfony\Component\HttpKernel\Kernel;
 final class KernelBootTest extends TestCase
 {
     private static int $n = 0;
+
+    private mixed $exceptionHandler = null;
+
+    protected function setUp(): void
+    {
+        $this->exceptionHandler = self::exceptionHandler();
+    }
+
+    protected function tearDown(): void
+    {
+        // Symfony 8's kernel installs its own exception handler when it boots;
+        // a test leaves PHP's handler stack as it found it.
+        for ($i = 0; $i < 10 && self::exceptionHandler() !== $this->exceptionHandler; ++$i) {
+            restore_exception_handler();
+        }
+    }
+
+    private static function exceptionHandler(): mixed
+    {
+        $handler = set_exception_handler(null);
+        restore_exception_handler();
+
+        return $handler;
+    }
 
     /**
      * @param list<class-string> $extraBundles
@@ -126,6 +152,35 @@ final class KernelBootTest extends TestCase
         $k->boot();
         $c = $k->getContainer()->get('test.service_container');
         self::assertInstanceOf(\Qoliber\TridentSymfony\Proxy\TridentProxyClient::class, $c->get('fos_http_cache.default_proxy_client'));
+        $k->shutdown();
+    }
+
+    public function testTheLoginMarkerIsWiredWithSecurity(): void
+    {
+        $k = self::kernel([SecurityBundle::class], static function (ContainerConfigurator $c): void {
+            $c->extension('doctrine', ['dbal' => ['url' => 'sqlite:///:memory:'], 'orm' => []]);
+            $c->extension('security', [
+                'providers' => ['users' => ['memory' => ['users' => ['editor' => ['password' => 'editor', 'roles' => ['ROLE_EDITOR']]]]]],
+                'firewalls' => ['main' => ['lazy' => true, 'provider' => 'users']],
+            ]);
+            $c->extension('trident', ['login_marker' => 'trident_auth', 'bypass_cookies' => ['other']]);
+        });
+        $k->boot();
+        $c = $k->getContainer()->get('test.service_container');
+        self::assertInstanceOf(LoginMarkerSubscriber::class, $c->get(LoginMarkerSubscriber::class));
+        // The marker is a bypass cookie of the response policy too.
+        $dumped = implode("\n", array_map('file_get_contents', glob($k->getCacheDir() . '/Container*/*.php') ?: []));
+        self::assertMatchesRegularExpression("/'other', 'trident_auth'/", $dumped);
+        $k->shutdown();
+    }
+
+    public function testWithoutTheLoginMarkerNothingNeedsSecurity(): void
+    {
+        $k = self::kernel([], static function (ContainerConfigurator $c): void {
+            $c->extension('doctrine', ['dbal' => ['url' => 'sqlite:///:memory:'], 'orm' => []]);
+        });
+        $k->boot();
+        self::assertFalse($k->getContainer()->get('test.service_container')->has(LoginMarkerSubscriber::class));
         $k->shutdown();
     }
 }

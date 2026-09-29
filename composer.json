@@ -24,11 +24,11 @@
     "require": {
         "php": "~8.2.0||~8.3.0||~8.4.0||~8.5.0",
         "ext-sodium": "*",
-        "symfony/framework-bundle": "^6.4||^7.0",
-        "symfony/console": "^6.4||^7.0",
+        "symfony/framework-bundle": "^6.4||^7.0||^8.0",
+        "symfony/console": "^6.4||^7.0||^8.0",
         "doctrine/dbal": "^3.6||^4.0",
         "doctrine/orm": "^2.16||^3.0",
-        "doctrine/doctrine-bundle": "^2.10",
+        "doctrine/doctrine-bundle": "^2.10||^3.0",
         "guzzlehttp/guzzle": "^7.5",
         "guzzlehttp/psr7": "^2.4",
         "qoliber/trident-php": "^1.8"
@@ -37,7 +37,8 @@
         "phpunit/phpunit": "^10.5||^11.0",
         "friendsofsymfony/http-cache-bundle": "^3.4",
         "doctrine/doctrine-migrations-bundle": "^3.2",
-        "symfony/yaml": "^6.4||^7.0"
+        "symfony/yaml": "^6.4||^7.0||^8.0",
+        "symfony/security-bundle": "^6.4||^7.0||^8.0"
     },
     "autoload": {
         "psr-4": {
@@ -57,6 +58,7 @@
     "suggest": {
         "friendsofsymfony/http-cache-bundle": "^3.4 \u2014 Trident as FOSHttpCache's proxy client (tags, clear) when the app has none",
         "doctrine/doctrine-migrations-bundle": "^3.2 \u2014 the bundle's migration for its two tables (otherwise doctrine:schema:update from the entity mapping)",
-        "symfony/scheduler": "drain the outbox every minute from a worker (messenger:consume scheduler_trident)"
+        "symfony/scheduler": "drain the outbox every minute from a worker (messenger:consume scheduler_trident)",
+        "symfony/security-bundle": "the login marker (trident.login_marker): signed-in visitors bypass Trident, and their renders are never shared"
     }
 }
